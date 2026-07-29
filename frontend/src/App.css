@@ -1,0 +1,418 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --stock: #0b1526;
+  --desk: #142238;
+  --paper: #ffffff;
+  --paper-dim: #e4ecfa;
+  --tally: #2e6ff2;
+  --tally-dim: #1b3f91;
+  --reel: #5aa9e6;
+  --ink: #101b2e;
+  --ash: #93a6c7;
+  --ash-dim: #56698c;
+
+  --error: #e5484d;
+  --error-bg: rgba(229, 72, 77, 0.1);
+  --error-border: rgba(229, 72, 77, 0.4);
+
+  --font-display: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--stock);
+  color: var(--paper);
+  font-family: var(--font-body);
+}
+
+.stage {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(46, 111, 242, 0.12), transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.5), transparent 60%),
+    var(--stock);
+}
+
+.slate {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stripe-bar {
+  height: 8px;
+  width: 96px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--ink) 0px,
+    var(--ink) 8px,
+    var(--paper-dim) 8px,
+    var(--paper-dim) 16px
+  );
+}
+
+.masthead-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.masthead h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  letter-spacing: 0.01em;
+  margin: 0;
+  color: var(--paper);
+}
+
+.tally-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tally);
+  box-shadow: 0 0 0 3px rgba(46, 111, 242, 0.2);
+  animation: pulse 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--ash);
+  font-size: 0.95rem;
+}
+
+/* ---------- form ---------- */
+
+.script-card {
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.script-label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ash-dim);
+}
+
+.script-card textarea {
+  resize: vertical;
+  min-height: 110px;
+  border: 1px solid rgba(16, 27, 46, 0.14);
+  border-radius: 6px;
+  background: #f7faff;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: 12px 14px;
+}
+
+.script-card textarea::placeholder {
+  color: var(--ash-dim);
+}
+
+.script-card textarea:disabled {
+  opacity: 0.6;
+}
+
+.script-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.char-count {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  color: var(--ash-dim);
+}
+
+.action-btn {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  background: var(--tally);
+  color: var(--paper);
+  border: none;
+  border-radius: 6px;
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #4c8bff;
+}
+
+.action-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.action-btn:disabled {
+  background: var(--tally-dim);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---------- examples ---------- */
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.examples-label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ash-dim);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--paper);
+  background: var(--desk);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.chip:hover {
+  background: #1c2e4a;
+  border-color: var(--tally);
+}
+
+/* ---------- error ---------- */
+
+.error-frame {
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  color: var(--paper);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.error-frame strong {
+  color: var(--error);
+}
+
+/* ---------- filmstrip ---------- */
+
+.filmstrip-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filmstrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.frame {
+  background: var(--desk);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 10px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.frame-lit {
+  background: rgba(46, 111, 242, 0.18);
+  border-color: var(--tally-dim);
+}
+
+.frame-active {
+  border-color: var(--tally);
+  animation: flicker 1.6s ease-in-out infinite;
+}
+
+.sprockets {
+  width: 100%;
+  height: 5px;
+  background-image: radial-gradient(circle, var(--stock) 1.6px, transparent 2px);
+  background-size: 9px 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+.frame-label {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ash);
+}
+
+.frame-lit .frame-label {
+  color: var(--paper);
+}
+
+.timecode {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--ash);
+}
+
+/* ---------- result ---------- */
+
+.reel-card {
+  background: var(--desk);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reel-card video {
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+  background: black;
+}
+
+.reel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reel-caption {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ash);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.download-btn {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tally);
+  background: transparent;
+  border: 1px solid var(--tally-dim);
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.download-btn:hover:not(:disabled) {
+  background: rgba(46, 111, 242, 0.12);
+  border-color: var(--tally);
+}
+
+.download-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- focus states ---------- */
+
+textarea:focus-visible,
+.action-btn:focus-visible,
+.chip:focus-visible,
+video:focus-visible {
+  outline: 2px solid var(--tally);
+  outline-offset: 2px;
+}
+
+/* ---------- motion ---------- */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes flicker {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(46, 111, 242, 0); }
+  50% { box-shadow: 0 0 0 3px rgba(46, 111, 242, 0.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tally-dot,
+  .frame-active {
+    animation: none;
+  }
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 480px) {
+  .stage {
+    padding: 28px 14px;
+  }
+
+  .script-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .filmstrip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
