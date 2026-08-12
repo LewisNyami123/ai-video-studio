@@ -11,23 +11,36 @@ from app.database import SessionLocal
 from app.models.video import Video, VideoStatus
 from app.utils.cloudinary import upload_video, generate_thumbnail
 
-try:
-    from moviepy import (
-        ImageClip,
-        AudioFileClip,
-        CompositeVideoClip,
-        concatenate_videoclips,
-    )
-    MOVIEPY_AVAILABLE = True
-except ImportError:
-    MOVIEPY_AVAILABLE = False
-    print("MoviePy is not available. Video generation will be disabled.")
+def _import_moviepy():
+    """Supports both MoviePy 1.x (classes live under moviepy.editor) and
+    MoviePy 2.x (moviepy.editor was removed; classes live at the top level)."""
+    for module_name in ("moviepy.editor", "moviepy"):
+        try:
+            module = __import__(module_name, fromlist=["ImageClip"])
+            image_clip = module.ImageClip
+            audio_clip = module.AudioFileClip
+            concat = module.concatenate_videoclips
+            composite = getattr(module, "CompositeVideoClip", None)
+            return image_clip, audio_clip, composite, concat, True, module_name
+        except (ImportError, AttributeError):
+            continue
+    return None, None, None, None, False, None
+
+
+ImageClip, AudioFileClip, CompositeVideoClip, concatenate_videoclips, MOVIEPY_AVAILABLE, _moviepy_source = _import_moviepy()
+if not MOVIEPY_AVAILABLE:
+    print("MoviePy import failed on both 'moviepy.editor' and 'moviepy'. Video generation will be disabled.")
+elif CompositeVideoClip is None:
+    print(f"CompositeVideoClip not available via {_moviepy_source}. Ken Burns effect will be disabled.")
 
 from gtts import gTTS
 from PIL import Image, ImageDraw, ImageFont
 
 TEXT_API_URL = "https://text.pollinations.ai/{prompt}"
 POLLINATIONS_IMAGE_URL = "https://image.pollinations.ai/prompt/{prompt}"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "openai/gpt-oss-20b"  # check console.groq.com if this ever stops working
 SCENE_PADDING_SECONDS = 0.4  # brief hold on each frame after narration ends
 
 SENTENCES_PER_SCENE = 2
@@ -92,8 +105,8 @@ def process_video_generation(video_id: int, description: str):
         video.progress = 90
         db.commit()
 
-        # upload to cloudinary
-        result = upload_video(video_file, f"video_{video_id}")
+        # upload to cloudinary (retries on transient gateway errors)
+        result = upload_with_retries(video_file, f"video_{video_id}")
 
         if result["success"]:
             video.cloudinary_url = result["url"]
@@ -127,9 +140,23 @@ def process_video_generation(video_id: int, description: str):
 
 
 def generate_script(topic: str) -> str:
-    """Expands a topic or prompt into a full narration script using an AI text
-    model. Works for any subject — not just educational content. Falls back to
-    the raw topic if the request fails, so a network hiccup never blocks a run."""
+    """Expands a topic or prompt into a full narration script. Tries Pollinations
+    first, then Groq (if a key is configured), then falls back to narrating the
+    raw topic if every provider fails — so one provider's outage or paywall
+    never blocks a run."""
+    script = _script_via_pollinations(topic)
+    if script:
+        return script
+
+    script = _script_via_groq(topic)
+    if script:
+        return script
+
+    print("All script providers unavailable, narrating the raw prompt instead.")
+    return topic
+
+
+def _script_via_pollinations(topic: str):
     try:
         url = TEXT_API_URL.format(prompt=quote(topic))
         params = {
@@ -138,17 +165,39 @@ def generate_script(topic: str) -> str:
             "system": SCRIPT_SYSTEM_PROMPT,
             "referrer": "ai-video-studio",
         }
-        response = requests.get(url, params=params, timeout=60)
+        response = requests.get(url, params=params, timeout=30)
         if not response.ok:
-            print(f"Script generation request failed: {response.status_code} - {response.text[:300]}")
-        response.raise_for_status()
-        script = clean_script(response.text)
-        if not script:
-            raise ValueError("empty script returned")
-        return script
+            print(f"Pollinations script request failed: {response.status_code} - {response.text[:300]}")
+            return None
+        return clean_script(response.text) or None
     except Exception as e:
-        print(f"Script generation failed ({e}), narrating the raw prompt instead.")
-        return topic
+        print(f"Pollinations script generation failed ({e}).")
+        return None
+
+
+def _script_via_groq(topic: str):
+    if not GROQ_API_KEY:
+        print("No GROQ_API_KEY set, skipping Groq fallback.")
+        return None
+    try:
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
+        payload = {
+            "model": GROQ_MODEL,
+            "messages": [
+                {"role": "system", "content": SCRIPT_SYSTEM_PROMPT},
+                {"role": "user", "content": topic},
+            ],
+            "temperature": 0.7,
+        }
+        response = requests.post(GROQ_URL, headers=headers, json=payload, timeout=30)
+        if not response.ok:
+            print(f"Groq script request failed: {response.status_code} - {response.text[:300]}")
+            return None
+        data = response.json()
+        return clean_script(data["choices"][0]["message"]["content"]) or None
+    except Exception as e:
+        print(f"Groq script generation failed ({e}).")
+        return None
 
 
 def generate_narration(text: str, output_path: str, retries: int = 3, delay: float = 2.0):
@@ -167,6 +216,21 @@ def generate_narration(text: str, output_path: str, retries: int = 3, delay: flo
             if attempt < retries:
                 time.sleep(delay)
     raise RuntimeError(f"Narration failed after {retries} attempts: {last_error}")
+
+
+def upload_with_retries(video_file, public_id, retries: int = 3, delay: float = 4.0):
+    """Retries the Cloudinary upload a few times before giving up. A transient
+    gateway error on the last step shouldn't throw away an otherwise
+    successful render."""
+    result = None
+    for attempt in range(1, retries + 1):
+        result = upload_video(video_file, public_id)
+        if result.get("success"):
+            return result
+        print(f"Upload attempt {attempt}/{retries} failed: {result.get('error')}")
+        if attempt < retries:
+            time.sleep(delay)
+    return result
 
 
 def clean_script(text: str) -> str:
